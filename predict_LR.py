@@ -6,8 +6,8 @@ def main():
     try:
         km_input = input("Mileage to estimate : ")
         km_int = int(km_input)
-        if km_int <= 0:
-            raise Exception("negative values or zero aren't accepted")
+        if km_int < 0:
+            raise Exception("negative values aren't accepted")
 
         input_file = "thetas_datas.json"
         if os.path.isfile(input_file):
