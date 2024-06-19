@@ -14,8 +14,8 @@ Objective: Implement a linear regression to predict the price of a car in relati
 ## For Launch
 
 ```python train_LR [-p] [-f]```
--p == display the plots with the training results
--f == add a file name to analyze (by default, it's the data.csv file given with the git clone)
+- -p == display the plots with the training results
+- -f == add a file name to analyze (by default, it's the data.csv file given with the git clone)
 
 next
 
