@@ -9,10 +9,10 @@ def data_normalization(data, base_data):
     data_norm = (data - min) / (max - min)
     return data_norm
 
-def data_denormalization(data, y):
+def data_denormalization(data_norm, y):
     max = y.max()
     min = y.min()
-    data_denorm = data * (max - min) + min
+    data_denorm = data_norm * (max - min) + min
     return data_denorm
 
 
@@ -21,8 +21,8 @@ class LinearRegression():
     Linear Regression with :
     Prediction : estimatePrice(mileage) = θ0 + (θ1 * mileage)
 
-    theta0 : tmpθ0 = learningRate * ((estimateP rice(mileage[i]) - price[i]).sum() / m)
-    theta1 : tmpθ1 = learningRate * (((estimateP rice(mileage[i]) - price[i]).sum() * mileage[i]) / m)
+    theta0 : tmpθ0 = learningRate * ((estimatePrice(mileage[i]) - price[i]).sum() / m)
+    theta1 : tmpθ1 = learningRate * (((estimatePrice(mileage[i]) - price[i]).sum() * mileage[i]) / m)
     """
     def __init__(self, data, display_plot, learning_rate, iteration, theta0, theta1, expected_columns, out_file):
         self.data = data
@@ -86,45 +86,45 @@ class LinearRegression():
             temp1 = 0
             mse = 0
 
-            ## calculating theta 0 is theta 1 on each training data and calculating the MSE
+            ## calculating theta 0 and theta 1 on each training data and calculating the MSE
             for i in range(self.m):
                 T = self.theta0 + self.theta1 * self.X[i] - self.Y[i]
                 temp0 += T
                 temp1 += T * self.X[i]
                 mse += T **2
 
-            self.theta0 -= self.lr * (temp0 /self.m)
+            self.theta0 -= self.lr * (temp0 / self.m)
             self.theta1 -= self.lr * (temp1 / self.m)
             cost = mse / self.m
             self.loss.append(cost)
 
-        ## recovery of theta 0 and theta 1
-        data_thetas_and_norm = {
-            "theta0" : self.theta0,
-            "theta1" : self.theta1,
-            "min_x" : float(self.x.min()),
-            "max_x" : float(self.x.max()),
-            "min_y" : float(self.y.min()),
-            "max_y" : float(self.y.max()),
-        }
-        file = open(self.out_file, 'w')
-        json.dump(data_thetas_and_norm, file, indent=4) 
-        file.close()
 
         if self.display_plot:
-
             ## calculating predictions on the training dataset
             pred_data_train = self.theta0 + (self.theta1 * self.X)
             pred_data_train_denorm = data_denormalization(pred_data_train, self.y)
             
-            ## calculation of the coefficient of determination (there is no precision in linear regression)
-            u = ((self.Y - pred_data_train)**2).sum()
-            v = ((self.Y - self.Y.mean())**2).sum()
-            coef_det = 1 - u/v
-            print(f"coefficient of determination (precision for a regression linear) =\n {coef_det * 100:.2f}%")
+            ## calculation of the precision : coefficient of determination
+            residual_sum_of_squares = ((self.Y - pred_data_train)**2).sum()
+            total_sum_of_squares = ((self.Y - self.Y.mean())**2).sum()
+            coefficient_of_determination = 1 - residual_sum_of_squares/total_sum_of_squares 
+            print(f"coefficient of determination (precision for a linear regression) =\n {coefficient_of_determination * 100:.2f}%")
             
             ## plots
             self.__making_plots(pred_data_train_denorm, pred_data_train)
+
+        ## denormalization of theta0 and theta1
+        self.theta1 = self.theta1 * (self.y.max() - self.y.min()) / (self.x.max() - self.x.min())
+        self.theta0  = self.y.min() + self.theta0 * (self.y.max() - self.y.min()) - self.theta1 * self.x.min()
+        
+        ## recovery of theta 0 and theta 1
+        data_thetas_and_norm = {
+            "theta0" : self.theta0,
+            "theta1" : self.theta1,
+        }
+        file = open(self.out_file, 'w')
+        json.dump(data_thetas_and_norm, file, indent=4) 
+        file.close()
 
 
 def get_args():
@@ -133,21 +133,20 @@ def get_args():
     parser.add_argument('--plot', '-p', action="store_true", default=False, help='view data and tracing results')
     return parser.parse_args()
 
-if __name__ == '__main__':
+def main():
     args = get_args()
-    print(args)
     try:
         df_data = pd.read_csv(args.file)
         expected_columns = ['km', 'price']
         ## check if the name of columns is correct : 'km','price'
         if list(df_data.columns) != expected_columns:
-            raise Exception("Error : the name of columns must be 'km,price'")
+            raise Exception("the name of columns must be 'km,price'")
         ## check if the value is int or float
         df_verif_NaN = pd.DataFrame({col :df_data[col].astype(float)  for col in expected_columns})
 
         ## check if there isn't value NaN
         if any(df_verif_NaN[col].isna().any() for col in expected_columns):
-            raise Exception("Error : value NaN isn't accepted")
+            raise Exception("value NaN isn't accepted")
            
         model = LinearRegression(data=df_data,
                                  display_plot=args.plot,
@@ -161,4 +160,7 @@ if __name__ == '__main__':
 
 
     except Exception as e:
-        print(f"Error : {e}")
+        print(f"Error: {e}")
+
+if __name__ == '__main__':
+   main()
